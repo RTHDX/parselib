@@ -21,6 +21,9 @@ public:
     void parent(AST* parent) { _parent = parent; }
 };
 
+#define NO_POP    void pop(parselib::AST*) override {}
+#define NO_APPEND void append(parselib::AST*) override {}
+
 
 
 class SyntaxTree : public AST {
