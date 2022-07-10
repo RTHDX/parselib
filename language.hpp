@@ -15,7 +15,6 @@ public:
     virtual void pop(AST*) = 0;
     virtual void accept(Visitor*) const = 0;
     virtual bool isEmpty() const = 0;
-    virtual AST* clone() const { return nullptr; }
 
     AST* parent() const { return _parent; }
     void parent(AST* parent) { _parent = parent; }
