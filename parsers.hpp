@@ -3,10 +3,10 @@
 #include <ostream>
 #include <type_traits>
 #include <functional>
+#include <concepts>
 
 #include "lexer.hpp"
 #include "language.hpp"
-
 
 namespace parselib {
 
@@ -39,10 +39,13 @@ public:
     virtual ~IParser() = default;
 
     virtual State operator () (State) const = 0;
-    virtual IParser* clone() const = 0;
     virtual bool is_valid() const = 0;
+    virtual IParser* clone() const = 0;
 };
-template <typename T> concept CParser = std::is_base_of<IParser, T>::value;
+template <typename T> concept CParser = std::derived_from<T, IParser>;
+template <typename T> concept CParser_ref =
+    std::is_reference<T>::value &&
+    std::derived_from<typename std::remove_reference<T>::type, IParser>;
 
 
 class Atom final : public IParser {
@@ -54,8 +57,8 @@ public:
     ~Atom() override = default;
 
     State operator () (State) const override;
-    IParser* clone() const override;
     bool is_valid() const override;
+    IParser* clone() const override { return new Atom(_tag); }
 };
 
 
@@ -66,8 +69,9 @@ public:
     ~Any() override = default;
 
     State operator() (State) const override;
-    IParser* clone() const override;
     bool is_valid() const override;
+
+    IParser* clone() const override { return new Any(); }
 };
 
 
@@ -103,13 +107,11 @@ public:
         return r_result;
     }
 
-    IParser* clone() const override {
-        return new And<Left, Right>{ _left, _right };
+    bool is_valid() const override {
+        return _left.is_valid() && _right.is_valid();
     }
 
-    bool is_valid() const override {
-        return _left.isValid() && _right.isValid();
-    }
+    IParser* clone() const override { return new And(_left, _right); }
 };
 
 
@@ -143,20 +145,18 @@ public:
         return state;
     }
 
-    IParser* clone() const override {
-        return new Or<Left, Right>{ _left, _right };
+    bool is_valid() const override {
+         return _left.is_valid() || _right.is_valid();
     }
 
-    bool is_valid() const override {
-        return _left.isValid() || _right.isValid();
-    }
+    IParser* clone() const override { return new Or(_left, _right); }
 };
 
 
 using Action = std::function<void(State&)>;
 static Action skip = [](State&){};
 class Parser : public IParser {
-    IParser* _parser;
+    IParser* _parser = nullptr;
 
     // do nothing by default;
     Action _before = skip;
@@ -164,7 +164,7 @@ class Parser : public IParser {
     Action _on_fail = skip;
 
 public:
-    Parser() : IParser(), _parser(nullptr) {}
+    Parser() = default;
     Parser(const Parser&);
     Parser(Parser&&) noexcept;
     const Parser& operator = (const Parser&);
@@ -178,18 +178,42 @@ public:
         _parser = temp;
     }
 
-    State operator () (State state) const override final;
-    IParser* clone() const override final;
-    bool is_valid() const override final;
+    State operator () (State state) const override;
+    bool is_valid() const override;
+    IParser* clone() const override;
 
     Parser& on_before(Action before) { _before = before; return *this; }
-    Parser& on_accept(Action onAccept) { _on_accept = onAccept; return *this; }
-    Parser& on_disaccept(Action onFail) { _on_fail = onFail; return *this; }
+    Parser& on_accept(Action accept) { _on_accept = accept; return *this; }
+    Parser& on_disaccept(Action fail) { _on_fail = fail; return *this; }
 };
 
 
+template<CParser Impl> class OneOrMore final : public IParser {
+    Impl _parser;
 
-class Forward : public IParser {
+public:
+    OneOrMore() = default;
+    OneOrMore(const Impl& parser) : IParser()
+        , _parser(parser) {}
+
+    State operator () (State state) const override {
+        State result = _parser(state);
+        while (!terminate(result) && result.accept) {
+            const State temp = _parser(result);
+            if (temp.accept == false) {
+                break;
+            }
+            result = temp;
+        }
+        return result;
+    }
+
+    IParser* clone() const override { return new OneOrMore{ _parser }; }
+    bool is_valid() const override { return _parser.is_valid(); }
+};
+
+
+class Forward final : public IParser {
     using Impl = std::function<State(const Forward&, const State&)>;
 
     Impl _parser;
@@ -204,26 +228,13 @@ public:
     Forward& operator = (Forward&&) noexcept = default;
     ~Forward() override;
 
-    State operator () (State) const override final;
-    IParser* clone() const override final;
-    bool is_valid() const override final;
+    State operator () (State) const override;
+    bool is_valid() const override;
+    IParser* clone() const override;
 
 private:
     explicit Forward(Impl&& parser);
 };
-
-
-
-template <CParser Left, CParser Right>
-inline And<Left, Right> operator + (Left left, Right right) {
-    return And<Left, Right> { left, right };
-}
-
-
-template <CParser Left, CParser Right>
-inline Or<Left, Right> operator | (Left left, Right right) {
-    return Or<Left, Right> { left, right };
-}
 
 
 class Driver {
@@ -244,7 +255,7 @@ private:
     bool is_accept(const State&) const;
 };
 
-template<typename Tree, typename ... Args>
+template<IAST Tree, typename ... Args>
 inline Action primary_type_builder(Args ... args) {
     return [args...](State& state) {
         CLIterator target = state.current - 1;
@@ -254,14 +265,12 @@ inline Action primary_type_builder(Args ... args) {
     };
 }
 
-
-template<typename Tree> inline void before_action(State& state) {
+template<IAST Tree> inline void before_action(State& state) {
     Tree* candidate = new Tree;
     state.tree.append(candidate);
     candidate->parent(state.tree.cursor());
     state.tree.cursor(candidate);
 }
-
 
 inline void accept_action(State& state) {
     state.tree.cursor(state.tree.cursor()->parent());
@@ -275,6 +284,33 @@ inline void disaccept_action(State& state) {
     if (parent) {
         parent->pop(to_delete);
     }
+}
+
+template <typename T> concept ASTProducer = requires (T t, Action a) {
+    { t.on_before(a) }    -> CParser_ref;
+    { t.on_accept(a) }    -> CParser_ref;
+    { t.on_disaccept(a) } -> CParser_ref;
+};
+
+template <CParser Left, CParser Right>
+inline And<Left, Right> operator + (Left left, Right right) {
+    return And<Left, Right> { left, right };
+}
+
+template <CParser Left, CParser Right>
+inline Or<Left, Right> operator | (Left left, Right right) {
+    return Or<Left, Right> { left, right };
+}
+
+template <CParser Impl> OneOrMore<Impl> one_or_more(Impl impl) {
+    return OneOrMore<Impl>(impl);
+}
+
+template <IAST Tree, ASTProducer P>
+inline P& bind(P& p) {
+    return p.on_before(before_action<Tree>)
+            .on_accept(accept_action)
+            .on_disaccept(disaccept_action);
 }
 
 }

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <typeinfo>
+
+
 namespace parselib {
 
 class Visitor;
@@ -19,6 +23,8 @@ public:
     void parent(AST* parent) { _parent = parent; }
 };
 
+using uAST = std::unique_ptr<AST>;
+template <typename T> concept IAST = std::is_base_of<AST, T>::value;
 #define NO_POP    void pop(parselib::AST*) override {}
 #define NO_APPEND void append(parselib::AST*) override {}
 

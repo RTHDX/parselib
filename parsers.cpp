@@ -60,7 +60,6 @@ State Atom::operator () (State state) const {
 }
 
 
-IParser* Atom::clone() const { return new Atom(_tag); }
 bool Atom::is_valid() const { return bool(_tag); }
 
 
@@ -70,7 +69,6 @@ State Any::operator () (State state) const {
     return state;
 }
 
-IParser* Any::clone() const { return new Any; }
 bool Any::is_valid() const { return true; }
 
 

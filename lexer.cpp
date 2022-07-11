@@ -4,14 +4,13 @@
 #include "constants.hpp"
 #include "lexer.hpp"
 
-using namespace parselib;
 
-
+namespace parselib {
 
 Rule::Rule()
-    : pattern(::constants::empty<std::string>())
-    , regex(::constants::empty<std::string>())
-    , tag(::constants::empty<uint32_t>())
+    : pattern(constants::empty<std::string>())
+    , regex(constants::empty<std::string>())
+    , tag(constants::empty<uint32_t>())
     , ignorable(true)
 {}
 
@@ -30,24 +29,26 @@ MatchObject Rule::match(const std::string& input, const uint64_t pos) const {
 
 
 MatchObject Rule::match(CSIterator begin, CSIterator end) const {
-    MatchObject matchObject;
-    const bool result = std::regex_search(begin, end, matchObject, regex);
-    return result && matchObject.position() == 0 ? matchObject : MatchObject();
+    MatchObject match_object;
+    const bool result = std::regex_search(begin, end, match_object, regex);
+    return result && match_object.position() == 0 ?
+        match_object :
+        MatchObject();
 }
 
 
 bool Rule::isValid() const {
-    return !(pattern == ::constants::empty<std::string>() && ignorable);
+    return !(pattern == constants::empty<std::string>() && ignorable);
 }
 
 
 
 Lexem::Lexem()
-    : content(::constants::empty<std::string>())
-    , start(::constants::empty<uint64_t>())
-    , length(::constants::empty<uint64_t>())
-    , end(::constants::empty<uint64_t>())
-    , tag(::constants::empty<Tag>())
+    : content(constants::empty<std::string>())
+    , start(constants::empty<uint64_t>())
+    , length(constants::empty<uint64_t>())
+    , end(constants::empty<uint64_t>())
+    , tag(constants::empty<Tag>())
 {}
 
 
@@ -61,7 +62,7 @@ Lexem::Lexem(const std::string& value, uint64_t begin, Tag tag)
 
 
 bool Lexem::empty() const {
-    return content == ::constants::empty<std::string>() &&
+    return content == constants::empty<std::string>() &&
            start == 0 && length == 0 && end == 0;
 }
 
@@ -113,4 +114,6 @@ std::ostream& parselib::operator << (std::ostream& os, const Lexems& lexems) {
         os << lexems[index] << ", ";
     }
     return length == 0 ? os << "}" : os << lexems[length - 1] << "}";
+}
+
 }
