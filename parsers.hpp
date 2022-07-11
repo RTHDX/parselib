@@ -92,14 +92,14 @@ public:
     State operator () (State state) const override {
         if (terminate(state)) return state;
 
-        State l_result = _left(state);
-        if (l_result.accept == false) {
+        auto l_result = _left(state);
+        if (!l_result.accept) {
             state.accept = false;
             return state;
         }
 
-        State r_result = _right(l_result);
-        if (r_result.accept == false) {
+        auto r_result = _right(l_result);
+        if (!r_result.accept) {
             state.accept = false;
             return state;
         }
@@ -132,12 +132,12 @@ public:
         if (terminate(state)) return state;
 
         State result = _left(state);
-        if (result.accept == true) {
+        if (result.accept) {
             return result;
         }
 
         result = _right(state);
-        if (result.accept == true) {
+        if (result.accept) {
             return result;
         }
 
@@ -170,7 +170,6 @@ public:
     const Parser& operator = (const Parser&);
     const Parser& operator = (Parser&&) noexcept;
     ~Parser() override;
-
 
     template <CParser This> Parser(const This& parser) : IParser() {
         This* temp = new This;
