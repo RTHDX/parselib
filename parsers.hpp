@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <functional>
 #include <concepts>
+#include <typeinfo>
 
 #include "lexer.hpp"
 #include "language.hpp"
@@ -162,6 +163,7 @@ class Parser : public IParser {
     Action _before = skip;
     Action _on_accept = skip;
     Action _on_fail = skip;
+    std::string _name;
 
 public:
     Parser() = default;
@@ -183,7 +185,8 @@ public:
 
     Parser& on_before(Action before) { _before = before; return *this; }
     Parser& on_accept(Action accept) { _on_accept = accept; return *this; }
-    Parser& on_disaccept(Action fail) { _on_fail = fail; return *this; }
+    Parser& on_fail(Action fail) { _on_fail = fail; return *this; }
+    Parser& name(const std::string& n) { _name = n; return *this; }
 };
 
 
@@ -285,10 +288,12 @@ inline void disaccept_action(State& state) {
     }
 }
 
-template <typename T> concept ASTProducer = requires (T t, Action a) {
-    { t.on_before(a) }    -> CParser_ref;
-    { t.on_accept(a) }    -> CParser_ref;
-    { t.on_disaccept(a) } -> CParser_ref;
+template <typename T> concept ASTProducer =
+    requires (T t, Action a, const std::string& n) {
+        { t.on_before(a) } -> CParser_ref;
+        { t.on_accept(a) } -> CParser_ref;
+        { t.on_fail(a) }   -> CParser_ref;
+        { t.name(n) }      -> CParser_ref;
 };
 
 template <CParser Left, CParser Right>
@@ -306,10 +311,11 @@ template <CParser Impl> OneOrMore<Impl> one_or_more(Impl impl) {
 }
 
 template <IAST Tree, ASTProducer P>
-inline P& bind(P& p) {
+inline P& bind(P& p, const std::string& n=typeid(Tree).name()) {
     return p.on_before(before_action<Tree>)
             .on_accept(accept_action)
-            .on_disaccept(disaccept_action);
+            .on_fail(disaccept_action)
+            .name(n);
 }
 
 }

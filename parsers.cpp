@@ -84,6 +84,7 @@ Parser::Parser(const Parser& old) {
         _before = old._before;
         _on_accept = old._on_accept;
         _on_fail = old._on_fail;
+        _name = old._name;
     }
 }
 
@@ -96,6 +97,7 @@ const Parser& Parser::operator = (const Parser& old) {
     _before = old._before;
     _on_accept = old._on_accept;
     _on_fail = old._on_fail;
+    _name = old._name;
     return *this;
 }
 
@@ -107,6 +109,7 @@ Parser::Parser(Parser&& old) noexcept {
         _before = std::move(old._before);
         _on_accept = std::move(old._on_accept);
         _on_fail = std::move(old._on_fail);
+        _name = std::move(old._name);
     }
 }
 
@@ -120,6 +123,7 @@ const Parser& Parser::operator = (Parser&& old) noexcept {
     _before = std::move(old._before);
     _on_accept = std::move(old._on_accept);
     _on_fail = std::move(old._on_fail);
+    _name = std::move(old._name);
     return *this;
 }
 
