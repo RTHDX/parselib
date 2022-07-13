@@ -129,6 +129,7 @@ const Parser& Parser::operator = (Parser&& old) noexcept {
 
 
 State Parser::operator()(State state) const {
+    if (terminate(state)) return state;
     assert(is_valid() && "using of unassigned parser");
 
     if (_before) { _before(state); }

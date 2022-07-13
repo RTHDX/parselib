@@ -279,7 +279,7 @@ inline void accept_action(State& state) {
 }
 
 
-inline void disaccept_action(State& state) {
+inline void fail_action(State& state) {
     AST* to_delete = state.tree.cursor();
     AST* parent = to_delete->parent();
     state.tree.cursor(parent);
@@ -311,10 +311,32 @@ template <CParser Impl> OneOrMore<Impl> one_or_more(Impl impl) {
 }
 
 template <IAST Tree, ASTProducer P>
-inline P& bind(P& p, const std::string& n=typeid(Tree).name()) {
+inline P& bind(P& p, Action custom,
+               const std::string& n=typeid(Tree).name()) {
+    return p.on_before([custom](State& state) {
+                before_action<Tree>(state);
+                custom(state);
+            }).on_accept([custom](State& state) {
+                accept_action(state);
+                custom(state);
+            }).on_fail([custom](State& state) {
+                fail_action(state);
+                custom(state);
+            }).name(n);
+}
+
+template <IAST Tree, ASTProducer P>
+inline P& bind(P& p, const std::string& n = typeid(Tree).name()) {
     return p.on_before(before_action<Tree>)
             .on_accept(accept_action)
-            .on_fail(disaccept_action)
+            .on_fail(fail_action)
+            .name(n);
+}
+
+template <IAST Tree, ASTProducer P, typename ... Args>
+inline P& bind_primary(P& p, const std::string n = typeid(Tree).name(),
+                       Args ... args) {
+    return p.on_accept(primary_type_builder<Tree>(args ...))
             .name(n);
 }
 
