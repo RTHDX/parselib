@@ -1,9 +1,24 @@
 cmake_minimum_required(VERSION 3.11)
 project(parselib)
 
-add_library(${PROJECT_NAME}
-    language.hpp parsers.hpp lexer.hpp exceptions.hpp constants.hpp
-    language.cpp parsers.cpp lexer.cpp
-)
+add_subdirectory(src)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
+option(PARSELIB_ENABLE_TESTS OFF)
+if (${PARSELIB_ENABLE_TESTS})
+    add_subdirectory(googletest)
+    include_directories(
+        "${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest/include"
+    )
+    include_directories(
+        "${CMAKE_CURRENT_SOURCE_DIR}/googletest/googlemock/include"
+    )
+    enable_testing()
+
+    add_subdirectory(tests)
+endif()
+
+option(PARSELIB_ENABLE_SAMPLES OFF)
+if (${PARSELIB_ENABLE_SAMPLES})
+    add_subdirectory(samples)
+endif()

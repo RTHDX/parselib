@@ -269,11 +269,11 @@ inline void accept_action(State& state) {
 
 
 inline void disaccept_action(State& state) {
-    AST* toDelete = state.tree.cursor();
-    AST* parent = toDelete->parent();
+    AST* to_delete = state.tree.cursor();
+    AST* parent = to_delete->parent();
     state.tree.cursor(parent);
     if (parent) {
-        parent->pop(toDelete);
+        parent->pop(to_delete);
     }
 }
 
