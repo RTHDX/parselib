@@ -1,0 +1,5 @@
+[*]
+guidelines = 80
+guidelines_style = 1px dashed gray
+trim_trailing_whitespace = true
+insert_final_newline = true

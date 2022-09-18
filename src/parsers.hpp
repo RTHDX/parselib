@@ -42,7 +42,7 @@ public:
     virtual IParser* clone() const = 0;
     virtual bool is_valid() const = 0;
 };
-template <typename T> concept CParser = std::is_base_of<IParser, T>::value;
+template <typename T> concept parser_c = std::is_base_of<IParser, T>::value;
 
 
 class Atom final : public IParser {
@@ -72,7 +72,7 @@ public:
 
 
 
-template<CParser Left, CParser Right> class And final : public IParser {
+template<parser_c Left, parser_c Right> class And final : public IParser {
     Left _left;
     Right _right;
 
@@ -113,7 +113,7 @@ public:
 };
 
 
-template<CParser Left, CParser Right> class Or final : public IParser {
+template<parser_c Left, parser_c Right> class Or final : public IParser {
     Left _left;
     Right _right;
 
@@ -171,8 +171,7 @@ public:
     const Parser& operator = (Parser&&) noexcept;
     ~Parser() override;
 
-
-    template <CParser This> Parser(const This& parser) : IParser() {
+    template <parser_c This> Parser(const This& parser) : IParser() {
         This* temp = new This;
         *temp = parser;
         _parser = temp;
@@ -214,13 +213,13 @@ private:
 
 
 
-template <CParser Left, CParser Right>
+template <parser_c Left, parser_c Right>
 inline And<Left, Right> operator + (Left left, Right right) {
     return And<Left, Right> { left, right };
 }
 
 
-template <CParser Left, CParser Right>
+template <parser_c Left, parser_c Right>
 inline Or<Left, Right> operator | (Left left, Right right) {
     return Or<Left, Right> { left, right };
 }

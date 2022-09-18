@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.11)
 project(parselib)
 
+include(utils.cmake)
+
 add_subdirectory(src)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 option(PARSELIB_ENABLE_TESTS OFF)
 if (${PARSELIB_ENABLE_TESTS})
+    message(" !!!--- TESTING ENABLED ---!!! ")
     add_subdirectory(googletest)
     include_directories(
         "${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest/include"
